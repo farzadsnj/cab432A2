@@ -1,5 +1,6 @@
 // database.js
 const { DynamoDBClient, PutItemCommand, GetItemCommand, QueryCommand, DeleteItemCommand, ScanCommand } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBDocumentClient, GetCommand } = require('@aws-sdk/lib-dynamodb');
 const { marshall, unmarshall } = require("@aws-sdk/util-dynamodb");
 const {
     cacheFileMetadata,
@@ -12,6 +13,7 @@ const { loadConfig } = require("../config.js");
 require("dotenv").config();
 
 let dynamodb;
+let dynamoDbDocumentClient;
 let config;
 const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME || "app_data";
 let redisClient;
@@ -29,7 +31,7 @@ initializeRedis().catch((err) => {
 // Initialize DynamoDB client with credentials from configuration
 const initializeDynamoDB = async () => {
     try {
-        config = await loadConfig();
+        const config = await loadConfig();
 
         // Build credentials object
         const credentials = {
@@ -42,20 +44,25 @@ const initializeDynamoDB = async () => {
             credentials.sessionToken = config.awsSessionToken;
         }
 
+        // Initialize the DynamoDB client
         dynamodb = new DynamoDBClient({
             region: config.awsRegion,
-            credentials: credentials
+            credentials: credentials,
         });
-        console.log("DynamoDB client initialized successfully");
+
+        // Initialize the DynamoDB Document Client
+        dynamoDbDocumentClient = DynamoDBDocumentClient.from(dynamodb);
+
+        console.log('DynamoDB client initialized successfully');
     } catch (err) {
-        console.error("Error initializing DynamoDB client:", err.stack || err);
-        throw new Error("Failed to initialize DynamoDB client.");
+        console.error('Error initializing DynamoDB client:', err);
+        throw new Error('Failed to initialize DynamoDB client.');
     }
 };
 
 // Call the initialization function on startup
 initializeDynamoDB().catch((err) => {
-    console.error("Failed to initialize DynamoDB:", err);
+    console.error('Failed to initialize DynamoDB:', err);
 });
 
 // Save a new user to DynamoDB
@@ -187,7 +194,7 @@ const saveProgress = async (username, fileName, progressData) => {
             TableName: TABLE_NAME,
             Item: marshall({
                 user: username,                   // Correct Partition Key
-                fileName: `PROGRESS#${fileName}`, // Sort Key
+                fileName: fileName, // Sort Key
                 progress: progressData,
                 lastUpdated: new Date().toISOString(),
             }),
@@ -206,8 +213,7 @@ const saveProgress = async (username, fileName, progressData) => {
     }
 };
 
-// Retrieve progress from DynamoDB or Redis cache
-// Get progress data from DynamoDB and cache it in Redis
+// Your existing getProgress function
 const getProgress = async (username, fileName) => {
     const cacheKey = `progress:${username}:${fileName}`;
     try {
@@ -218,35 +224,38 @@ const getProgress = async (username, fileName) => {
             return JSON.parse(cachedProgress);
         }
 
-        // If not in cache, get it from DynamoDB
+        // If not in cache, get it from DynamoDB using the Document Client
         const params = {
             TableName: TABLE_NAME,
-            Key: marshall({
-                user: username,                   // Correct Partition Key
-                fileName: `PROGRESS#${fileName}`, // Sort Key
-            }),
+            Key: {
+                user: username,     // Partition Key
+                fileName: fileName, // Sort Key
+            },
         };
 
-        const { Item } = await dynamodb.send(new GetItemCommand(params));
-        if (Item) {
-            const progressData = unmarshall(Item);
+        // Use the Document Client to send the GetCommand
+        const { Item } = await dynamoDbDocumentClient.send(new GetCommand(params));
 
+        if (Item) {
             // Cache the progress data in Redis for faster subsequent access
-            await redisClient.set(cacheKey, JSON.stringify(progressData), {
+            await redisClient.set(cacheKey, JSON.stringify(Item), {
                 EX: 60, // Cache for 60 seconds
             });
 
             console.log(`Returning progress data for ${username} - ${fileName}`);
 
             // Return the retrieved progress data
-            return progressData;
+            return Item;
+        } else {
+            console.log(`No progress data found for ${username} - ${fileName}`);
+            return null;
         }
-        return null;
     } catch (err) {
-        console.error(`Error fetching progress for ${username} - ${fileName}:`, err.stack || err);
+        console.error(`Error fetching progress for ${username} - ${fileName}:`, err);
         return null;
     }
 };
+
 
 // Get all files (for admin)
 const getAllFiles = async () => {
