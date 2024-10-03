@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Home - CAB432</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav>
+        <!-- Navigation menu -->
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="/admin">Admin Panel</a></li>
+            <li><a href="/upload">Upload</a></li>
+            <li><a href="/register">Register</a></li>
+            <li><a href="/login">Login</a></li>
+            <li><a href="/logout">Logout</a></li>
+        </ul>
+        <div id="user-label" class="user-label" style="display: none;"></div>
+    </nav>
+    <div class="container">
+        <h1>Welcome to CAB432 Application</h1>
+        <p>Navigate the application using the navigation bar above.</p>
+
+        <div id="weather" class="weather-info">
+            <h2>Current Weather</h2>
+            <p>City: <span id="cityName"></span></p>
+            <p>Temperature: <span id="temperature"></span> °C</p>
+            <p>Description: <span id="description"></span></p>
+            <img id="weatherIcon" src="" alt="Weather Icon" style="display: none;">
+        </div>
+
+        <h2>Uploaded Files</h2>
+        <ul id="fileList" class="file-list"></ul>
+    </div>
+
+    <script>
+        fetchData();
+        const fileListElement = document.getElementById('fileList');
+        // Display list of uploaded files with transcoding progress
+        function displayFileList(files) {
+            fileListElement.innerHTML = ''; // Clear current list
+
+            if (files.length > 0) {
+                files.forEach(file => {
+                    const li = document.createElement('li');
+                    li.textContent = `${file.fileName} - Progress: ${file.progress}%`;
+                    fileListElement.appendChild(li);
+                });
+            } else {
+                fileListElement.textContent = 'No files uploaded yet.';
+            }
+        }
+
+        // Real-time progress updates every 10 seconds
+        setInterval(fetchData, 100000);  // Fetch data every 10 seconds
+
+        // Fetch file list from the server
+function fetchData() {
+    fetch('https://aus01.safelinks.protection.outlook.com/?url=https%3A%2F%2Furldefense.com%2Fv3%2F__http%3A%2F%2Fapi.openweathermap.org__%3B!!NVzLfOphnbDXSw!DXhlJQ-MZKV2ADpvYMzA6b47gKzc3_-t_X6A_JY07-6sV6xWSr9EEvzb5wPvhBDCbpcp-D8rMaPT2rMPpgrQjff1SFiPzg%24&data=05%7C02%7Cfarzad.sanjarani%40connect.qut.edu.au%7C303f0bcfb67e451ffd5908dce384848d%7Cdc0b52a368c544f7881d9383d8850b96%7C0%7C0%7C638635405526326516%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C0%7C%7C%7C&sdata=Ne3eSZioHTs71TNyyonwl095t8HebeaZK4lH%2FwkBPoI%3D&reserved=0')  // Adjust the endpoint if necessary
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch file list');
+            }
+            return response.json();
+        })
+        .then(files => {
+            displayFileList(files);
+        })
+        .catch(error => {
+            console.error('Error fetching file list:', error.message);
+            fileListElement.textContent = 'Error loading files.';
+        });
+}
+
+        // Helper function to get cookies
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+
+        const username = getCookie('username');
+        const userLabel = document.getElementById('user-label');
+        if (username) {
+            userLabel.textContent = `Logged in as: ${username}`;
+            userLabel.style.display = 'block';
+        }
+
+        function fetchWeather() {
+            fetch('/api/v1/weather')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch weather data');
+                    }
+                    return response.json();
+                })
+                .then(weather => {
+                    displayWeather(weather);
+                })
+                .catch(error => {
+                    console.error('Error fetching weather data:', error.message);
+                    document.getElementById('weather').textContent = 'Weather data not available';
+                });
+        }
+    
+        // Display weather info
+        function displayWeather(weather) {
+            if (weather) {
+                document.getElementById('cityName').textContent = weather.city;
+                document.getElementById('temperature').textContent = weather.temperature;
+                document.getElementById('description').textContent = weather.description;
+                const iconUrl = `http://openweathermap.org/img/wn/${weather.icon}@2x.png`;
+                const weatherIcon = document.getElementById('weatherIcon');
+                weatherIcon.src = iconUrl;
+                weatherIcon.style.display = 'block';
+            } else {
+                document.getElementById('weather').textContent = 'Weather data not available';
+            }
+        }
+    
+        // Call fetchWeather when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchWeather();
+            fetchData(); // Existing function to fetch files
+        });
+    </script>
+</body>
+</html>

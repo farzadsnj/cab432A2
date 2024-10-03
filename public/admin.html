@@ -1,0 +1,202 @@
+<!-- admin.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <nav>
+      <!-- Navigation menu -->
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/admin">Admin Panel</a></li>
+        <li><a href="/upload">Upload</a></li>
+        <li><a href="/register">Register</a></li>
+        <li><a href="/login">Login</a></li>
+        <li><a href="/logout">Logout</a></li>
+        <li id="user-label" style="display: none"></li>
+      </ul>
+    </nav>
+
+    <div class="container">
+      <h1>Admin Dashboard</h1>
+      <p>
+        Welcome to the admin dashboard, where you can manage users and files.
+      </p>
+
+      <h2>Uploaded Videos</h2>
+      <table id="filesTable">
+        <thead>
+          <tr>
+            <th>File Name</th>
+            <th>User</th>
+            <th>Upload Time</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Files will be dynamically inserted here -->
+        </tbody>
+      </table>
+
+      <h2>Registered Users</h2>
+      <table id="usersTable">
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Role</th>
+            <!-- Add more columns if needed -->
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Users will be dynamically inserted here -->
+        </tbody>
+      </table>
+    </div>
+
+    <script>
+      fetchFiles();
+
+      async function fetchFiles() {
+        try {
+          const response = await fetch("/admin/files", {
+            credentials: "include",
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Failed to fetch files.");
+          }
+
+          const data = await response.json();
+          const filesTableBody = document
+            .getElementById("filesTable")
+            .getElementsByTagName("tbody")[0];
+          filesTableBody.innerHTML = "";
+
+          // Assuming each file object has properties: fileName, user, uploadTime
+          if (data.files && data.files.length > 0) {
+            data.files.forEach((file) => {
+              const row = filesTableBody.insertRow();
+
+              const fileNameCell = row.insertCell(0);
+              fileNameCell.textContent = file.fileName.replace("FILE#", ""); // Remove 'FILE#' prefix if present
+
+              const userCell = row.insertCell(1);
+              userCell.textContent = file.user;
+
+              const uploadTimeCell = row.insertCell(2);
+              const uploadTime = file.uploadTime
+                ? new Date(file.uploadTime).toLocaleString()
+                : "N/A";
+              uploadTimeCell.textContent = uploadTime;
+
+              const actionsCell = row.insertCell(3);
+              const deleteButton = document.createElement("button");
+              //deleteButton.textContent = "Delete";
+              deleteButton.onclick = () =>
+                deleteFile(file.user, file.fileName.replace("FILE#", ""));
+              actionsCell.appendChild(deleteButton);
+            });
+          } else {
+            const row = filesTableBody.insertRow();
+            const cell = row.insertCell(0);
+            cell.colSpan = 4;
+            cell.textContent = "No files uploaded yet.";
+          }
+        } catch (error) {
+          console.error("Error fetching files:", error);
+          alert("Error fetching files: " + error.message);
+        }
+      }
+
+      async function deleteFile(username, fileName) {
+        if (
+          !confirm(
+            `Are you sure you want to delete ${fileName} uploaded by ${username}?`
+          )
+        ) {
+          return;
+        }
+
+        try {
+          const response = await fetch("/admin/delete-file", {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ username, fileName }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Failed to delete file.");
+          }
+
+          alert("File deleted successfully.");
+          fetchFiles(); // Refresh the file list
+        } catch (error) {
+          console.error("Error deleting file:", error);
+          alert("Error deleting file: " + error.message);
+        }
+      }
+
+      async function fetchUsers() {
+        try {
+          const response = await fetch("/api/v1/admin/users", {
+            credentials: "include",
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Failed to fetch users.");
+          }
+
+          const data = await response.json();
+          const usersTableBody = document
+            .getElementById("usersTable")
+            .getElementsByTagName("tbody")[0];
+          usersTableBody.innerHTML = "";
+
+          if (data.users && data.users.length > 0) {
+            data.users.forEach((user) => {
+              const row = usersTableBody.insertRow();
+
+              const usernameCell = row.insertCell(0);
+              usernameCell.textContent = user.username;
+
+              const roleCell = row.insertCell(1);
+              roleCell.textContent = user.role || "user";
+            });
+          } else {
+            const row = usersTableBody.insertRow();
+            const cell = row.insertCell(0);
+            cell.colSpan = 2;
+            cell.textContent = "No users found.";
+          }
+        } catch (error) {
+          console.error("Error fetching users:", error);
+          alert("Error fetching users: " + error.message);
+        }
+      }
+
+      // Display username if logged in
+      const username = getCookie("username");
+      const userLabel = document.getElementById("user-label");
+      if (username) {
+        userLabel.textContent = `Logged in as: ${username}`;
+        userLabel.style.display = "block";
+      }
+
+      function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(";").shift();
+        return null;
+      }
+    </script>
+  </body>
+</html>

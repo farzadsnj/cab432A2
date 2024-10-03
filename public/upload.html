@@ -1,0 +1,244 @@
+<!-- upload.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Upload - CAB432</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <nav>
+    <!-- Navigation menu -->
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/admin">Admin Panel</a></li>
+      <li><a href="/upload">Upload</a></li>
+      <li><a href="/register">Register</a></li>
+      <li><a href="/login">Login</a></li>
+      <li><a href="/logout">Logout</a></li>
+    </ul>
+    <div id="user-label" class="user-label" style="display: none;"></div>
+  </nav>
+
+  <div class="container">
+    <h1>Upload File</h1>
+    <form id="uploadForm" class="form-control">
+      <input
+        type="file"
+        id="uploadFile"
+        name="uploadFile"
+        required
+        class="input-field"
+      />
+      <input type="submit" value="Upload" class="btn" />
+    </form>
+    <p id="uploadStatus"></p>
+
+    <div id="progressContainer" style="display: none;">
+      <label for="progressBar">Upload & Transcoding Progress:</label>
+      <progress id="progressBar" value="0" max="100"></progress>
+      <span id="progressText">0%</span>
+    </div>
+
+    <h2>Uploaded Files</h2>
+    <ul id="fileList" class="file-list"></ul>
+  </div>
+
+  <script>
+    document
+      .getElementById('uploadForm')
+      .addEventListener('submit', async function (event) {
+        event.preventDefault();
+        const fileInput = document.getElementById('uploadFile');
+        const file = fileInput.files[0];
+        if (!file) {
+          alert('Please select a file to upload.');
+          return;
+        }
+
+        try {
+          // Get pre-signed URL from server
+          const response = await fetch(
+            `/api/v1/upload-url?fileName=${encodeURIComponent(file.name)}`,
+            {
+              credentials: 'include',
+            }
+          );
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Failed to get upload URL: ${errorData.error}`);
+          }
+
+          const data = await response.json();
+          const uploadUrl = data.url;
+
+          // Upload file directly to S3 with progress tracking
+          const xhr = new XMLHttpRequest();
+          xhr.open('PUT', uploadUrl, true);
+          xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+
+          xhr.upload.onprogress = function (event) {
+            if (event.lengthComputable) {
+              const percentComplete = Math.round(
+                (event.loaded / event.total) * 100
+              );
+              document.getElementById('progressBar').value = percentComplete;
+              document.getElementById('progressText').textContent =
+                percentComplete + '%';
+              document.getElementById('progressContainer').style.display = 'block';
+            }
+          };
+
+          xhr.onload = async function () {
+            if (xhr.status === 200) {
+              // Notify server about the upload
+              const notifyResponse = await fetch('/api/v1/upload', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ fileName: file.name }),
+              });
+
+              if (notifyResponse.ok) {
+                const notifyData = await notifyResponse.json();
+                document.getElementById('uploadStatus').textContent =
+                  'File uploaded successfully. Transcoding started.';
+                document.getElementById('progressBar').value = 0;
+                document.getElementById('progressText').textContent = '0%';
+
+                // Start monitoring transcoding progress
+                if (notifyData.progressId) {
+                  monitorTranscodingProgress(notifyData.progressId);
+                }
+              } else {
+                const errorData = await notifyResponse.json();
+                throw new Error(`Failed to notify server: ${errorData.error}`);
+              }
+            } else {
+              throw new Error('File upload failed.');
+            }
+          };
+
+          xhr.onerror = function () {
+            throw new Error('An error occurred during the upload.');
+          };
+
+          xhr.send(file);
+        } catch (error) {
+          console.error('Error uploading file:', error);
+          document.getElementById('uploadStatus').textContent = error.message;
+        }
+      });
+
+    function monitorTranscodingProgress(progressId) {
+      const intervalId = setInterval(async () => {
+        try {
+          const response = await fetch(`/api/v1/progress/${progressId}`, {
+            credentials: 'include',
+          });
+          if (response.ok) {
+            const data = await response.json();
+            const progress = data.progress;
+            document.getElementById('progressBar').value = progress;
+            document.getElementById('progressText').textContent = `${progress}%`;
+
+            if (progress >= 100) {
+              clearInterval(intervalId);
+              document.getElementById('uploadStatus').textContent =
+                'Transcoding completed.';
+              fetchFiles(); // Refresh file list
+            }
+          } else {
+            clearInterval(intervalId);
+            throw new Error('Failed to fetch progress.');
+          }
+        } catch (error) {
+          clearInterval(intervalId);
+          console.error('Error monitoring progress:', error);
+        }
+      }, 2000); // Poll every 2 seconds
+    }
+
+    async function fetchFiles() {
+      try {
+        const response = await fetch('/api/v1/files', {
+          credentials: 'include', // Include cookies in the request
+        });
+
+        if (response.status === 403) {
+          throw new Error('Forbidden: Invalid token or not authorized.');
+        }
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Unknown error occurred');
+        }
+
+        const data = await response.json();
+        const fileList = document.getElementById('fileList');
+        fileList.innerHTML = '';
+
+        if (data.files && data.files.length > 0) {
+          data.files.forEach((file) => {
+            const li = document.createElement('li');
+            const encodedFileName = encodeURIComponent(file.fileName);
+
+            li.innerHTML = `
+              ${file.fileName} (${file.progress || 0}%)
+              <button class="btn" onclick="downloadFile('${encodedFileName}')">Download</button>
+            `;
+            fileList.appendChild(li);
+          });
+        } else {
+          fileList.textContent = 'No files uploaded yet.';
+        }
+      } catch (error) {
+        console.error('Error fetching files:', error);
+        document.getElementById('uploadStatus').textContent = error.message;
+      }
+    }
+
+    async function downloadFile(fileName) {
+      try {
+        // Get pre-signed download URL
+        const response = await fetch(
+          `/api/v1/download-url?fileName=${fileName}`,
+          {
+            credentials: 'include',
+          }
+        );
+        const data = await response.json();
+        const downloadUrl = data.url;
+
+        // Redirect to the download URL
+        window.location.href = downloadUrl;
+      } catch (error) {
+        console.error('Error downloading file:', error);
+        alert('Error downloading file.');
+      }
+    }
+
+    // Fetch files on page load
+    fetchFiles();
+
+    // Display username if logged in
+    const username = getCookie('username');
+    const userLabel = document.getElementById('user-label');
+    if (username) {
+      userLabel.textContent = `Logged in as: ${username}`;
+      userLabel.style.display = 'block';
+    }
+
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2)
+        return parts.pop().split(';').shift();
+      return null; // Return null if no cookie is found
+    }
+  </script>
+</body>
+</html>
