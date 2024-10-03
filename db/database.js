@@ -161,7 +161,7 @@ const saveFileMetadata = async (fileMetadata) => {
         TableName: TABLE_NAME,
         Item: marshall({
             "user": fileMetadata.user,                         // Partition Key
-            "fileName": `FILE#${fileMetadata.fileName}`,       // Unique file identifier
+            "fileName": fileMetadata.fileName,       // Unique file identifier
             "size": fileMetadata.size,
             "format": fileMetadata.format || null,
             "resolution": fileMetadata.resolution || null,
@@ -229,7 +229,6 @@ const getProgress = async (username, fileName) => {
             TableName: TABLE_NAME,
             Key: {
                 user: username,     // Partition Key
-                fileName: fileName, // Sort Key
             },
         };
 
@@ -257,7 +256,6 @@ const getProgress = async (username, fileName) => {
 };
 
 
-// Get all files (for admin)
 const getAllFiles = async () => {
     const params = {
       TableName: TABLE_NAME,
@@ -281,9 +279,9 @@ const getAllFiles = async () => {
       // Unmarshall the items
       const files = data.Items.map(item => unmarshall(item));
   
-      // Adjust the fileName to remove 'FILE#' prefix
+      // Adjust the fileName to remove 'FILE#' prefix if fileName exists
       files.forEach(file => {
-        if (file.fileName.startsWith('FILE#')) {
+        if (file.fileName && file.fileName.startsWith('FILE#')) {
           file.fileName = file.fileName.substring(5);
         }
       });
@@ -293,7 +291,8 @@ const getAllFiles = async () => {
       console.error('Error fetching all files:', err.stack || err);
       return [];
     }
-  };
+};
+
   
   // Delete file metadata from DynamoDB
   const deleteFile = async (username, fileName) => {

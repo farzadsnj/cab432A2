@@ -49,7 +49,10 @@ const registerUser = async (username, password, callback) => {
             ClientId: clientId,
             Username: username,
             Password: password,
-            UserAttributes: [{ Name: "email", Value: username }]
+            UserAttributes: [
+                { Name: "email", Value: username },
+                { Name: "emails", Value: username } // Include this if 'emails' is required
+            ]
         };
         const command = new SignUpCommand(params);
         await cognitoClient.send(command);

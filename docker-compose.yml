@@ -5,18 +5,24 @@ services:
     build: .
     ports:
       - "3000:3000"
+    environment:
+      - PORT=${PORT}
+      - DB_PATH=${DB_PATH}
+      - JWT_SECRET=${JWT_SECRET}
+      - WEATHER_API_KEY=${WEATHER_API_KEY}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}
+      - COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID}
+      - COGNITO_CLIENT_ID=${COGNITO_CLIENT_ID}
+      - DYNAMODB_TABLE_NAME=${DYNAMODB_TABLE_NAME}
+      - REDIS_URL=${REDIS_URL_LOCAL}
+      - NODE_ENV=${NODE_ENV}
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
-    environment:
-      - PORT=3000
-      - DB_PATH=/usr/src/app/db/database.sqlite
-      - JWT_SECRET=${JWT_SECRET}
-      - WEATHER_API_KEY=${WEATHER_API_KEY}
-      - AWS_REGION=${AWS_REGION}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}
     depends_on:
       - db
 
@@ -24,3 +30,13 @@ services:
     image: nouchka/sqlite3
     volumes:
       - ./db:/data
+
+  # Optional: Add a reverse proxy like Nginx if you need to handle requests in production
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - app

@@ -95,9 +95,10 @@
 
               const actionsCell = row.insertCell(3);
               const deleteButton = document.createElement("button");
-              //deleteButton.textContent = "Delete";
-              deleteButton.onclick = () =>
-                deleteFile(file.user, file.fileName.replace("FILE#", ""));
+              deleteButton.textContent = "Delete";
+              deleteButton.onclick = () => {
+                row.remove();
+              };
               actionsCell.appendChild(deleteButton);
             });
           } else {
@@ -112,41 +113,9 @@
         }
       }
 
-      async function deleteFile(username, fileName) {
-        if (
-          !confirm(
-            `Are you sure you want to delete ${fileName} uploaded by ${username}?`
-          )
-        ) {
-          return;
-        }
-
-        try {
-          const response = await fetch("/admin/delete-file", {
-            method: "POST",
-            credentials: "include",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ username, fileName }),
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || "Failed to delete file.");
-          }
-
-          alert("File deleted successfully.");
-          fetchFiles(); // Refresh the file list
-        } catch (error) {
-          console.error("Error deleting file:", error);
-          alert("Error deleting file: " + error.message);
-        }
-      }
-
       async function fetchUsers() {
         try {
-          const response = await fetch("/api/v1/admin/users", {
+          const response = await fetch("/admin/users", {
             credentials: "include",
           });
 

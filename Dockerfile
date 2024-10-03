@@ -1,4 +1,5 @@
-FROM node:16-alpine
+# Stage 1: Build the application
+FROM node:16-alpine AS builder
 
 # Install dependencies for building native addons
 RUN apk add --no-cache python3 make g++
@@ -10,13 +11,22 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 
 # Install node modules
-RUN npm install
+RUN npm install --production
+
+# Copy the remaining project files
+COPY . .
 
 # Rebuild sqlite3 for Alpine
 RUN npm rebuild sqlite3
 
-# Copy the remaining project files
-COPY . .
+# Stage 2: Create the final optimized image
+FROM node:16-alpine
+
+# Set working directory
+WORKDIR /usr/src/app
+
+# Copy only the built artifacts from the builder stage
+COPY --from=builder /usr/src/app /usr/src/app
 
 # Expose port 3000
 EXPOSE 3000

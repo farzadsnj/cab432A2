@@ -108,6 +108,13 @@ router.post('/register', loginLimiter, async (req, res) => {
       ClientId: config.cognitoClientId,
       Username: username,
       Password: password,
+      // Add the required email attribute here
+      UserAttributes: [
+        {
+          Name: "email",
+          Value: username // Assuming the username is an email
+        }
+      ]
     };
 
     const command = new SignUpCommand(params);
@@ -115,8 +122,7 @@ router.post('/register', loginLimiter, async (req, res) => {
 
     // Return success response
     res.json({
-      message:
-        'Registration successful. Please check your email for the confirmation code.',
+      message: 'Registration successful. Please check your email for the confirmation code.',
     });
   } catch (err) {
     console.error('Registration error:', err);
