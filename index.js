@@ -46,6 +46,7 @@ app.use("/", webclientRoute);
 app.use("/admin", adminRoute);
 app.use("/api/v1/upload", uploadRoute);
 
+
 app.use((err, req, res, next) => {
     console.error('Unhandled error:', err);
     res.status(500).json({ error: 'Internal server error' });
