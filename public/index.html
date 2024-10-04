@@ -7,7 +7,6 @@
 </head>
 <body>
     <nav>
-        <!-- Navigation menu -->
         <ul>
             <li><a href="/">Home</a></li>
             <li><a href="/admin">Admin Panel</a></li>
@@ -37,9 +36,8 @@
     <script>
         fetchData();
         const fileListElement = document.getElementById('fileList');
-        // Display list of uploaded files with transcoding progress
         function displayFileList(files) {
-            fileListElement.innerHTML = ''; // Clear current list
+            fileListElement.innerHTML = '';
 
             if (files.length > 0) {
                 files.forEach(file => {
@@ -52,10 +50,8 @@
             }
         }
 
-        // Real-time progress updates every 10 seconds
-        setInterval(fetchData, 100000);  // Fetch data every 10 seconds
+        setInterval(fetchData, 100000); 
 
-        // Fetch file list from the server
 function fetchData() {
     fetch('https://aus01.safelinks.protection.outlook.com/?url=https%3A%2F%2Furldefense.com%2Fv3%2F__http%3A%2F%2Fapi.openweathermap.org__%3B!!NVzLfOphnbDXSw!DXhlJQ-MZKV2ADpvYMzA6b47gKzc3_-t_X6A_JY07-6sV6xWSr9EEvzb5wPvhBDCbpcp-D8rMaPT2rMPpgrQjff1SFiPzg%24&data=05%7C02%7Cfarzad.sanjarani%40connect.qut.edu.au%7C303f0bcfb67e451ffd5908dce384848d%7Cdc0b52a368c544f7881d9383d8850b96%7C0%7C0%7C638635405526326516%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C0%7C%7C%7C&sdata=Ne3eSZioHTs71TNyyonwl095t8HebeaZK4lH%2FwkBPoI%3D&reserved=0')  // Adjust the endpoint if necessary
         .then(response => {
@@ -105,7 +101,6 @@ function fetchData() {
                 });
         }
     
-        // Display weather info
         function displayWeather(weather) {
             if (weather) {
                 document.getElementById('cityName').textContent = weather.city;
@@ -119,11 +114,10 @@ function fetchData() {
                 document.getElementById('weather').textContent = 'Weather data not available';
             }
         }
-    
-        // Call fetchWeather when the page loads
+
         document.addEventListener('DOMContentLoaded', () => {
             fetchWeather();
-            fetchData(); // Existing function to fetch files
+            fetchData();
         });
     </script>
 </body>

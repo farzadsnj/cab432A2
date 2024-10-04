@@ -1,17 +1,15 @@
-// redisClient.js
 const redis = require('redis');
-const { loadConfig } = require('./config'); // Load configuration with secrets
+const { loadConfig } = require('./config');
 
 let redisClient;
 
-// Function to initialize Redis client
 const initializeRedisClient = async () => {
     if (redisClient && redisClient.isOpen) {
         return redisClient;
     }
 
     try {
-        const config = await loadConfig();
+        //const config = await loadConfig();
         const redisUrl = process.env.NODE_ENV === 'production' ? process.env.REDIS_URL_CLOUD : process.env.REDIS_URL_LOCAL;
 
         redisClient = redis.createClient({
@@ -34,18 +32,16 @@ const initializeRedisClient = async () => {
     }
 };
 
-// Function to cache progress in Redis
 const cacheProgress = async (progressId, progressData) => {
     try {
         const client = await initializeRedisClient();
-        await client.setEx(progressId, 3600, JSON.stringify(progressData)); // 1-hour expiration
+        await client.setEx(progressId, 3600, JSON.stringify(progressData));
         console.log(`Progress for ${progressId} cached successfully.`);
     } catch (err) {
         console.error(`Error caching progress for ${progressId}:`, err);
     }
 };
 
-// Function to retrieve cached progress from Redis
 const getCachedProgress = async (progressId) => {
     try {
         const client = await initializeRedisClient();
@@ -57,19 +53,17 @@ const getCachedProgress = async (progressId) => {
     }
 };
 
-// Function to cache file metadata in Redis
 const cacheFileMetadata = async (username, metadata) => {
     const key = `${username}_files`;
     try {
         const client = await initializeRedisClient();
-        await client.setEx(key, 3600, JSON.stringify(metadata)); // 1-hour expiration
+        await client.setEx(key, 3600, JSON.stringify(metadata)); 
         console.log(`File metadata for ${username} cached successfully.`);
     } catch (err) {
         console.error(`Error caching file metadata for ${username}:`, err);
     }
 };
 
-// Function to retrieve cached file metadata from Redis
 const getCachedFileMetadata = async (username) => {
     const key = `${username}_files`;
     try {

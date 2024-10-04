@@ -1,4 +1,3 @@
-// upload.js
 const express = require('express');
 const router = express.Router();
 const auth = require('../auth.js');
@@ -16,27 +15,22 @@ router.post('/', auth.authenticateToken, async (req, res) => {
   const progressId = `${username}_${Date.now()}`;
 
   try {
-    // Save user activity
     await saveUserActivity(
       username,
       `Started processing file: ${fileName}`
     );
 
-    // Save file metadata
     const fileMetadata = {
       fileName: fileName,
-      size: null, // Size is unknown at this point
+      size: null, 
       uploadTime: new Date().toISOString(),
       user: username,
       progressId: progressId,
       status: 'uploaded',
     };
     await saveFileMetadata(fileMetadata);
-
-    // Initialize progress to 0%
     await saveProgress(progressId, 0, 'started');
 
-    // Start the transcoding process
     transcodeVideoWithProgress(fileName, progressId, username)
       .then(() => {
         saveProgress(progressId, 100, 'completed');

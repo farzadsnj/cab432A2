@@ -1,4 +1,3 @@
-// s3_upload.js
 const {
   S3Client,
   PutObjectCommand,
@@ -13,7 +12,6 @@ const path = require('path');
 let s3Client;
 let bucketName;
 
-// Initialize S3 client and bucket name
 const initializeS3 = async () => {
   try {
     const config = await loadConfig();
@@ -33,16 +31,13 @@ const initializeS3 = async () => {
   }
 };
 
-// Call the initialization function
 initializeS3();
 
-// Upload a file to S3
 const uploadToS3 = async (filePath, username) => {
   let s3Key;
   try {
     console.log('uploadToS3 called with filePath:', filePath);
 
-    // Normalize and verify the file path
     const normalizedFilePath = path.normalize(filePath);
     console.log('Normalized file path:', normalizedFilePath);
 
@@ -50,21 +45,18 @@ const uploadToS3 = async (filePath, username) => {
       throw new Error('File path is invalid or file does not exist');
     }
 
-    // Read file content
     const fileContent = fs.readFileSync(normalizedFilePath);
     const fileName = path.basename(normalizedFilePath);
     s3Key = `${username}/${fileName}`;
 
     console.log('Uploading file to S3 with key:', s3Key);
 
-    // Upload parameters
     const uploadParams = {
       Bucket: bucketName,
       Key: s3Key,
       Body: fileContent,
     };
 
-    // Upload to S3
     const command = new PutObjectCommand(uploadParams);
     await s3Client.send(command);
 
@@ -80,7 +72,6 @@ const uploadToS3 = async (filePath, username) => {
   }
 };
 
-// Clean up partially uploaded file in case of failure
 const cleanUpFailedUpload = async (s3Key) => {
   try {
     const deleteParams = {
@@ -98,19 +89,18 @@ const cleanUpFailedUpload = async (s3Key) => {
   }
 };
 
-// Generate a pre-signed URL for uploading a file
 const generatePresignedUploadUrl = async (fileName, username) => {
   try {
     const s3Key = `${username}/${fileName}`;
     const uploadParams = {
       Bucket: bucketName,
       Key: s3Key,
-      ContentType: 'application/octet-stream', // Modify as needed
+      ContentType: 'application/octet-stream', 
     };
     const command = new PutObjectCommand(uploadParams);
     const url = await getSignedUrl(s3Client, command, {
       expiresIn: 3600,
-    }); // Expires in 1 hour
+    }); 
     return url;
   } catch (err) {
     console.error('Error generating presigned upload URL:', err);
@@ -118,7 +108,6 @@ const generatePresignedUploadUrl = async (fileName, username) => {
   }
 };
 
-// Generate a pre-signed URL for downloading a file
 const generatePresignedDownloadUrl = async (fileName, username) => {
   try {
     const s3Key = `${username}/${fileName}`;
@@ -129,7 +118,7 @@ const generatePresignedDownloadUrl = async (fileName, username) => {
     const command = new GetObjectCommand(downloadParams);
     const url = await getSignedUrl(s3Client, command, {
       expiresIn: 3600,
-    }); // Expires in 1 hour
+    }); 
     return url;
   } catch (err) {
     console.error('Error generating presigned download URL:', err);
@@ -137,7 +126,6 @@ const generatePresignedDownloadUrl = async (fileName, username) => {
   }
 };
 
-// Function to retrieve a file from S3 and send it in the response
 const getFileFromS3 = async (fileName, username, res) => {
   try {
     const s3Key = `${username}/${fileName}`;
@@ -164,7 +152,6 @@ const getFileFromS3 = async (fileName, username, res) => {
   }
 };
 
-// Delete a file from S3
 const deleteFileFromS3 = async (fileName, username) => {
   try {
     const s3Key = `${username}/${fileName}`;
@@ -181,17 +168,16 @@ const deleteFileFromS3 = async (fileName, username) => {
   }
 };
 
-// Add this function to list all files for a specific user (username can be optional if you want to list all)
 const listFilesInS3 = async (username) => {
   try {
     const listParams = {
       Bucket: bucketName,
-      Prefix: `${username}/`,  // Use prefix to list files under a specific user's folder
+      Prefix: `${username}/`,  
     };
     const command = new ListObjectsV2Command(listParams);
     const response = await s3Client.send(command);
     
-    return response.Contents.map((file) => file.Key);  // Return file keys
+    return response.Contents.map((file) => file.Key); 
   } catch (err) {
     console.error('Error listing files in S3:', err);
     throw new Error('Failed to list files in S3');

@@ -11,7 +11,6 @@ require("dotenv").config();
 
 let cognitoClient, clientId, userPoolId, jwtVerifier, verifier;
 
-// Initialize configuration and set Cognito details
 const initializeConfig = async () => {
     try {
         const config = await loadConfig();
@@ -21,7 +20,6 @@ const initializeConfig = async () => {
         clientId = config.cognitoClientId;
         userPoolId = config.cognitoUserPoolId;
 
-        // Initialize JWT Verifier - Expecting an access token
         jwtVerifier = CognitoJwtVerifier.create({
             userPoolId: userPoolId,
             tokenUse: "access",
@@ -29,7 +27,7 @@ const initializeConfig = async () => {
             issuer: `https://cognito-idp.${process.env.AWS_REGION}.amazonaws.com/${userPoolId}`
         });
 
-        verifier = jwtVerifier; // Use the same verifier
+        verifier = jwtVerifier;
 
         console.log("Configuration initialized successfully.");
     } catch (err) {
@@ -42,7 +40,6 @@ initializeConfig().catch((err) => {
     console.error("Failed to initialize config:", err);
 });
 
-// Register user using AWS Cognito
 const registerUser = async (username, password, callback) => {
     try {
         const params = {
@@ -51,19 +48,18 @@ const registerUser = async (username, password, callback) => {
             Password: password,
             UserAttributes: [
                 { Name: "email", Value: username },
-                { Name: "emails", Value: username } // Include this if 'emails' is required
+                { Name: "emails", Value: username } 
             ]
         };
         const command = new SignUpCommand(params);
         await cognitoClient.send(command);
-        callback(null);  // Registration successful
+        callback(null);  
     } catch (error) {
         console.error("Registration failed:", error);
         callback(new Error(error.message));
     }
 };
 
-// Generate Access and Refresh Tokens during login
 const generateAccessToken = async (username, password, callback) => {
     try {
         const params = {
@@ -85,11 +81,10 @@ const generateAccessToken = async (username, password, callback) => {
         callback(null, { accessToken, idToken, refreshToken });
     } catch (error) {
         console.error("Login failed:", error);
-        callback(new Error(error.message));  // Pass error to callback
+        callback(new Error(error.message)); 
     }
 };
 
-// Token verification middleware
 const authenticateToken = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     let token;
@@ -108,25 +103,18 @@ const authenticateToken = async (req, res, next) => {
     }
 
     try {
-        // Verify the token using AWS Cognito JWT Verifier
         const payload = await verifier.verify(token);
         console.log('JWT Payload:', payload);
-
-        // Extract the username from the payload
         const username = payload.username || payload['cognito:username'] || payload['sub'];
 
         if (!username) {
             console.error('Username not found in token payload');
             return res.status(403).json({ error: "Invalid token payload" });
         }
-
-        // Hardcode admin users
-        const adminUsers = ['n11521147@qut.edu.au']; // Replace with your admin username(s)
+        const adminUsers = ['n11521147@qut.edu.au']; 
 
         // Set role
         const role = adminUsers.includes(username) ? 'admin' : 'user';
-
-        // Attach to req.user
         req.user = {
             username: username,
             role: role,
@@ -141,7 +129,6 @@ const authenticateToken = async (req, res, next) => {
     }
 };
 
-// Logout function to invalidate refresh token (optional)
 const logoutUser = async (accessToken, callback) => {
     try {
         const params = {
@@ -156,7 +143,6 @@ const logoutUser = async (accessToken, callback) => {
     }
 };
 
-// Admin authorization middleware
 function authorizeAdmin(req, res, next) {
     if (req.user && req.user.role === 'admin') {
         return next();

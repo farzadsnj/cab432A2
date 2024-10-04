@@ -1,4 +1,3 @@
-<!-- admin.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -8,7 +7,6 @@
   </head>
   <body>
     <nav>
-      <!-- Navigation menu -->
       <ul>
         <li><a href="/">Home</a></li>
         <li><a href="/admin">Admin Panel</a></li>
@@ -37,7 +35,6 @@
           </tr>
         </thead>
         <tbody>
-          <!-- Files will be dynamically inserted here -->
         </tbody>
       </table>
 
@@ -47,11 +44,9 @@
           <tr>
             <th>Username</th>
             <th>Role</th>
-            <!-- Add more columns if needed -->
           </tr>
         </thead>
         <tbody>
-          <!-- Users will be dynamically inserted here -->
         </tbody>
       </table>
     </div>
@@ -81,7 +76,7 @@
               const row = filesTableBody.insertRow();
     
               const fileNameCell = row.insertCell(0);
-              fileNameCell.textContent = file.fileName.replace("FILE#", ""); // Remove 'FILE#' prefix if present
+              fileNameCell.textContent = file.fileName.replace("FILE#", "");
     
               const userCell = row.insertCell(1);
               userCell.textContent = file.user;
@@ -95,8 +90,8 @@
               const actionsCell = row.insertCell(3);
               const downloadButton = document.createElement("a");
               downloadButton.textContent = "Download";
-              downloadButton.href = file.presignedUrl;  // Set the presigned URL as the href for download
-              downloadButton.target = "_blank"; // Opens the link in a new tab
+              downloadButton.href = file.presignedUrl;  
+              downloadButton.target = "_blank"; 
               actionsCell.appendChild(downloadButton);
     
               const deleteButton = document.createElement("button");
@@ -157,7 +152,6 @@
         }
       }
 
-      // Display username if logged in
       const username = getCookie("username");
       const userLabel = document.getElementById("user-label");
       if (username) {

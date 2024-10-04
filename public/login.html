@@ -7,7 +7,6 @@
 </head>
 <body>
     <nav>
-        <!-- Navigation menu -->
         <ul>
             <li><a href="/">Home</a></li>
             <li><a href="/admin">Admin Panel</a></li>
@@ -21,7 +20,6 @@
     <div class="container">
         <h1 id="form-title">Login</h1>
         
-        <!-- Login Form -->
         <form id="loginForm" method="POST" class="form-control">
             <input type="text" name="username" id="login-username" placeholder="Email" required class="input-field">
             <input type="password" name="password" id="login-password" placeholder="Password" required class="input-field">
@@ -37,7 +35,7 @@
 
         loginForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            errorMessage.style.display = 'none'; // Hide any previous error
+            errorMessage.style.display = 'none';
 
             const loginData = {
                 username: document.getElementById('login-username').value,
@@ -48,21 +46,18 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(loginData),
-                credentials: 'include' // Include cookies in the request
+                credentials: 'include'
             })
             .then(response => response.json())
             .then(data => {
                 if (data.authToken) {
-                    // Successful login, redirect to home page
                     window.location.href = '/index.html';
                 } else {
-                    // Show error message on failure
                     errorMessage.textContent = data.error || "Invalid credentials.";
                     errorMessage.style.display = 'block';
                 }                
             })
             .catch(() => {
-                // Handle network or other unexpected errors
                 errorMessage.textContent = 'An error occurred during login. Please try again.';
                 errorMessage.style.display = 'block';
             });

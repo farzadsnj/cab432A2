@@ -7,36 +7,47 @@ services:
       - "3000:3000"
     environment:
       - PORT=${PORT}
-      - DB_PATH=${DB_PATH}
       - JWT_SECRET=${JWT_SECRET}
-      - WEATHER_API_KEY=${WEATHER_API_KEY}
-      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
-      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
-      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
+      - DB_PATH=${DB_PATH}
+      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
+      - AWS_ACCESS_KEY_ID=${aws_access_key_id}
+      - AWS_SECRET_ACCESS_KEY=${aws_secret_access_key}
+      - AWS_SESSION_TOKEN=${aws_session_token}
       - AWS_REGION=${AWS_REGION}
       - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}
       - COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID}
       - COGNITO_CLIENT_ID=${COGNITO_CLIENT_ID}
+      - APP_DOMAIN=${APP_DOMAIN}
       - DYNAMODB_TABLE_NAME=${DYNAMODB_TABLE_NAME}
-      - REDIS_URL=${REDIS_URL_LOCAL}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_URL_LOCAL=${REDIS_URL_LOCAL}
+      - REDIS_URL_CLOUD=${REDIS_URL_CLOUD}
       - NODE_ENV=${NODE_ENV}
-    volumes:
-      - .:/usr/src/app
-      - /usr/src/app/node_modules
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
     depends_on:
       - db
+      - redis
+    networks:
+      - app-network
 
   db:
     image: nouchka/sqlite3
     volumes:
       - ./db:/data
+    networks:
+      - app-network
 
-  # Optional: Add a reverse proxy like Nginx if you need to handle requests in production
-  nginx:
-    image: nginx:alpine
+  redis:
+    image: redis:alpine
+    restart: always
     ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-    depends_on:
-      - app
+      - "6379:6379"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

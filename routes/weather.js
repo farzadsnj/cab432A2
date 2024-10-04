@@ -1,8 +1,7 @@
-// weather.js
 const axios = require('axios');
 
 async function getWeatherData(city) {
-  const apiKey = process.env.OPENWEATHER_API_KEY; // Ensure this environment variable is set
+  const apiKey = process.env.OPENWEATHER_API_KEY;
   if (!apiKey) {
     throw new Error('OpenWeather API key is not set.');
   }

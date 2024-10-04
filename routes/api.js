@@ -1,4 +1,3 @@
-// api.js
 const express = require('express');
 const router = express.Router();
 const { authenticateToken, authorizeAdmin } = require('../auth.js');
@@ -24,24 +23,19 @@ const {
 } = require('./s3_upload');
 const { getWeatherData } = require('./weather.js');
 
-// Rate limit for login and register routes (prevent brute force attacks)
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 requests per windowMs
+  windowMs: 15 * 60 * 1000, 
+  max: 5, 
   message:
     'Too many attempts from this IP, please try again after 15 minutes.',
   headers: true,
 });
 
-// User Login Route
 router.post('/login', loginLimiter, async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    // Load configuration
     const config = await loadConfig();
-
-    // Initialize Cognito Identity Provider Client
     const cognitoClient = new CognitoIdentityProviderClient({
       region: config.awsRegion,
       credentials: {
@@ -50,7 +44,6 @@ router.post('/login', loginLimiter, async (req, res) => {
       },
     });
 
-    // Authenticate user with Cognito
     const params = {
       AuthFlow: 'USER_PASSWORD_AUTH',
       ClientId: config.cognitoClientId,
@@ -64,21 +57,18 @@ router.post('/login', loginLimiter, async (req, res) => {
     const response = await cognitoClient.send(command);
     const token = response.AuthenticationResult.AccessToken;
 
-    // Set cookies with appropriate attributes
     res.cookie('token', token, {
       httpOnly: true,
       sameSite: 'Lax',
       path: '/',
-      // secure: true, // Uncomment if using HTTPS
+
     });
     res.cookie('username', username, {
       httpOnly: false,
       sameSite: 'Lax',
       path: '/',
-      // secure: true, // Uncomment if using HTTPS
     });
 
-    // Return success response
     res.json({ authToken: token });
   } catch (err) {
     console.error('Login error:', err);
@@ -86,15 +76,12 @@ router.post('/login', loginLimiter, async (req, res) => {
   }
 });
 
-// User Registration Route
 router.post('/register', loginLimiter, async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    // Load configuration
     const config = await loadConfig();
 
-    // Initialize Cognito Identity Provider Client
     const cognitoClient = new CognitoIdentityProviderClient({
       region: config.awsRegion,
       credentials: {
@@ -103,16 +90,14 @@ router.post('/register', loginLimiter, async (req, res) => {
       },
     });
 
-    // Register user with Cognito
     const params = {
       ClientId: config.cognitoClientId,
       Username: username,
       Password: password,
-      // Add the required email attribute here
       UserAttributes: [
         {
           Name: "email",
-          Value: username // Assuming the username is an email
+          Value: username 
         }
       ]
     };
@@ -120,7 +105,6 @@ router.post('/register', loginLimiter, async (req, res) => {
     const command = new SignUpCommand(params);
     await cognitoClient.send(command);
 
-    // Return success response
     res.json({
       message: 'Registration successful. Please check your email for the confirmation code.',
     });
@@ -130,15 +114,11 @@ router.post('/register', loginLimiter, async (req, res) => {
   }
 });
 
-// Confirmation of User Registration Route
 router.post('/confirm', async (req, res) => {
   const { username, confirmationCode } = req.body;
 
   try {
-    // Load configuration
     const config = await loadConfig();
-
-    // Initialize Cognito Identity Provider Client
     const cognitoClient = new CognitoIdentityProviderClient({
       region: config.awsRegion,
       credentials: {
@@ -147,7 +127,6 @@ router.post('/confirm', async (req, res) => {
       },
     });
 
-    // Confirm user with Cognito
     const params = {
       ClientId: config.cognitoClientId,
       Username: username,
@@ -168,7 +147,6 @@ router.post('/confirm', async (req, res) => {
   }
 });
 
-// Admin routes
 router.get('/admin/files', authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const files = await getAllFiles();
@@ -193,10 +171,7 @@ router.post('/admin/delete-file', authenticateToken, authorizeAdmin, async (req,
   }
 
   try {
-    // Delete file from S3
     await deleteFileFromS3(fileName, username);
-
-    // Delete file metadata from database
     await deleteFile(username, fileName);
 
     res.status(200).json({
@@ -225,10 +200,7 @@ router.get('/admin/users', authenticateToken, authorizeAdmin, async (req, res) =
   }
 });
 
-// File Upload Route (Handled by upload.js)
 router.use('/upload', require('./upload.js'));
-
-// Fetch Uploaded Files with DynamoDB Metadata and Progress
 router.get('/files', authenticateToken, async (req, res) => {
   try {
     const username = req.user.username;
@@ -238,10 +210,9 @@ router.get('/files', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: 'No files found for the user.' });
     }
 
-    // Fetch the progress for each file
     const filesWithProgress = await Promise.all(
       files.map(async (file) => {
-        const progressData = await getProgress(username, file.fileName); // Adjusted to pass username and fileName
+        const progressData = await getProgress(username, file.fileName); 
         const progress = progressData ? parseFloat(progressData.progress) : 100;
         return { ...file, progress };
       })
@@ -262,7 +233,6 @@ router.get('/files', authenticateToken, async (req, res) => {
   }
 });
 
-// Generate Pre-signed URL for file upload
 router.get('/upload-url', authenticateToken, async (req, res) => {
   const { fileName } = req.query;
   const username = req.user.username;
@@ -283,7 +253,6 @@ router.get('/upload-url', authenticateToken, async (req, res) => {
   }
 });
 
-// Generate Pre-signed URL for file download
 router.get('/download-url', authenticateToken, async (req, res) => {
   const { fileName } = req.query;
   const username = req.user.username;
@@ -304,13 +273,12 @@ router.get('/download-url', authenticateToken, async (req, res) => {
   }
 });
 
-// Fetch Transcoding Progress
 router.get('/progress/:progressId', authenticateToken, async (req, res) => {
   const progressId = req.params.progressId;
   const username = req.user.username;
 
   try {
-    const progressData = await getProgress(username, progressId); // Adjusted to pass username and progressId
+    const progressData = await getProgress(username, progressId); 
 
     if (!progressData) {
       return res.status(404).json({ error: 'Progress not found.' });
@@ -327,7 +295,7 @@ router.get('/progress/:progressId', authenticateToken, async (req, res) => {
 });
 
 router.get('/weather', async (req, res) => {
-  const city = req.query.city || 'Brisbane'; // Use a default city if none is provided
+  const city = req.query.city || 'Brisbane'; 
 
   try {
     const weatherInfo = await getWeatherData(city);

@@ -1,4 +1,3 @@
-<!-- upload.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,7 +7,6 @@
 </head>
 <body>
   <nav>
-    <!-- Navigation menu -->
     <ul>
       <li><a href="/">Home</a></li>
       <li><a href="/admin">Admin Panel</a></li>
@@ -57,7 +55,6 @@
         }
 
         try {
-          // Get pre-signed URL from server
           const response = await fetch(
             `/api/v1/upload-url?fileName=${encodeURIComponent(file.name)}`,
             {
@@ -73,7 +70,6 @@
           const data = await response.json();
           const uploadUrl = data.url;
 
-          // Upload file directly to S3 with progress tracking
           const xhr = new XMLHttpRequest();
           xhr.open('PUT', uploadUrl, true);
           xhr.setRequestHeader('Content-Type', 'application/octet-stream');
@@ -92,7 +88,7 @@
 
           xhr.onload = async function () {
             if (xhr.status === 200) {
-              // Notify server about the upload
+
               const notifyResponse = await fetch('/api/v1/upload', {
                 method: 'POST',
                 credentials: 'include',
@@ -109,7 +105,6 @@
                 document.getElementById('progressBar').value = 0;
                 document.getElementById('progressText').textContent = '0%';
 
-                // Start monitoring transcoding progress
                 if (notifyData.progressId) {
                   monitorTranscodingProgress(notifyData.progressId);
                 }
@@ -149,7 +144,7 @@
               clearInterval(intervalId);
               document.getElementById('uploadStatus').textContent =
                 'Transcoding completed.';
-              fetchFiles(); // Refresh file list
+              fetchFiles();
             }
           } else {
             clearInterval(intervalId);
@@ -159,13 +154,13 @@
           clearInterval(intervalId);
           console.error('Error monitoring progress:', error);
         }
-      }, 2000); // Poll every 2 seconds
+      }, 2000); 
     }
 
     async function fetchFiles() {
       try {
         const response = await fetch('/api/v1/files', {
-          credentials: 'include', // Include cookies in the request
+          credentials: 'include',
         });
 
         if (response.status === 403) {
@@ -203,7 +198,6 @@
 
     async function downloadFile(fileName) {
       try {
-        // Get pre-signed download URL
         const response = await fetch(
           `/api/v1/download-url?fileName=${fileName}`,
           {
@@ -213,7 +207,6 @@
         const data = await response.json();
         const downloadUrl = data.url;
 
-        // Redirect to the download URL
         window.location.href = downloadUrl;
       } catch (error) {
         console.error('Error downloading file:', error);
@@ -221,10 +214,8 @@
       }
     }
 
-    // Fetch files on page load
     fetchFiles();
 
-    // Display username if logged in
     const username = getCookie('username');
     const userLabel = document.getElementById('user-label');
     if (username) {
@@ -237,7 +228,7 @@
       const parts = value.split(`; ${name}=`);
       if (parts.length === 2)
         return parts.pop().split(';').shift();
-      return null; // Return null if no cookie is found
+      return null;
     }
   </script>
 </body>

@@ -1,4 +1,3 @@
-// config.js
 console.log("Config.js is being loaded");
 const {
   SecretsManagerClient,
@@ -11,14 +10,11 @@ const {
 const AWS = require('aws-sdk');
 require("dotenv").config();
 
-// Set AWS region from environment variables or default to ap-southeast-2
 const awsRegion = process.env.AWS_REGION || "ap-southeast-2";
 
-// Initialize AWS SDK clients for Secrets Manager and SSM
 const secretsManager = new SecretsManagerClient({ region: awsRegion });
 const ssmClient = new SSMClient({ region: awsRegion });
 
-// Helper to fetch secrets from AWS Secrets Manager
 const getSecret = async (secretName) => {
   try {
     const data = await secretsManager.send(
@@ -26,7 +22,7 @@ const getSecret = async (secretName) => {
     );
     if (data.SecretString) {
       console.log(`Secret ${secretName} fetched successfully.`);
-      return JSON.parse(data.SecretString); // assuming secrets are stored as JSON
+      return JSON.parse(data.SecretString); 
     } else {
       console.warn(`Secret ${secretName} contains no secret string.`);
       return {};
@@ -37,7 +33,6 @@ const getSecret = async (secretName) => {
   }
 };
 
-// Helper to fetch parameters from AWS SSM Parameter Store
 const getParameter = async (paramName) => {
   try {
     const data = await ssmClient.send(
@@ -51,13 +46,10 @@ const getParameter = async (paramName) => {
   }
 };
 
-// Function to fetch configuration (secrets and parameters)
 const loadConfig = async () => {
   try {
-    // Fetch secrets from Secrets Manager
     let secrets = await getSecret(process.env.AWS_SECRETS_NAME);
 
-    // Merge secrets with environment variables (environment variables take precedence)
     secrets = {
       awsAccessKeyId: secrets.awsAccessKeyId || process.env.AWS_ACCESS_KEY_ID,
       awsSecretAccessKey: secrets.awsSecretAccessKey || process.env.AWS_SECRET_ACCESS_KEY,
@@ -66,16 +58,13 @@ const loadConfig = async () => {
       cognitoUserPoolId: secrets.cognitoUserPoolId || process.env.COGNITO_USER_POOL_ID,
     };
 
-    // Validate that AWS credentials are available
     if (!secrets.awsAccessKeyId || !secrets.awsSecretAccessKey) {
       console.error("AWS credentials are missing. Please check your secrets or environment variables.");
       throw new Error("AWS credentials are missing.");
     }
 
-    // Fetch additional configuration parameters from SSM Parameter Store
     const s3BucketName = await getParameter(process.env.S3_BUCKET_PARAM_NAME || "/app/s3/n11521147-a2");
 
-    // Return the configuration
     return {
       awsAccessKeyId: secrets.awsAccessKeyId,
       awsSecretAccessKey: secrets.awsSecretAccessKey,
@@ -89,6 +78,11 @@ const loadConfig = async () => {
     console.error("Error loading configuration:", error);
     throw new Error("Failed to load configuration.");
   }
+
+  console.log("AWS_ACCESS_KEY_ID:", process.env.AWS_ACCESS_KEY_ID);
+  console.log("AWS_SECRET_ACCESS_KEY:", process.env.AWS_SECRET_ACCESS_KEY);
+  console.log("AWS_SESSION_TOKEN:", process.env.AWS_SESSION_TOKEN);
+
 };
 
 module.exports = { loadConfig };
