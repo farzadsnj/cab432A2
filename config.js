@@ -58,6 +58,8 @@ const loadConfig = async () => {
         cognitoUserPoolId: secrets.cognitoUserPoolId || process.env.COGNITO_USER_POOL_ID,
      };
 
+     console.log("AWS Access Key ID:", secrets.awsAccessKeyId);
+
      if (!secrets.awsAccessKeyId || !secrets.awsSecretAccessKey) {
         console.error("AWS credentials are missing. Please check your secrets or environment variables.");
         throw new Error("AWS credentials are missing.");

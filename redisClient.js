@@ -10,7 +10,7 @@ const initializeRedisClient = async () => {
 
     try {
         //const config = await loadConfig();
-        const redisUrl = process.env.NODE_ENV === 'production' ? process.env.REDIS_URL_CLOUD : process.env.REDIS_URL_LOCAL;
+        const redisUrl = 'redis://n11521147-a22-ech.km2jzi.cfg.apse2.cache.amazonaws.com:6379';
 
         redisClient = redis.createClient({
             url: redisUrl,
