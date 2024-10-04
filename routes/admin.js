@@ -8,20 +8,24 @@ const { getAllFiles, deleteFile } = require('../db/database.js');
 const { deleteFileFromS3 } = require('./s3_upload.js');
 
 // GET /admin/files route to list all uploaded files (admin only)
-// GET /admin/files route to list all uploaded files (admin only)
 router.get('/files', authenticateToken, authorizeAdmin, async (req, res) => {
-    try {
-        // Fetch all files from the database
-        const files = await getAllFiles(); // Ensure this function is correctly implemented in your database.js
+  try {
+      // Fetch all files from the database
+      const files = await getAllFiles(); // Ensure this function is correctly implemented in your database.js
+      
+      // Add presigned URL for each file from S3
+      for (let file of files) {
+          file.presignedUrl = await generatePresignedDownloadUrl(file.fileName, file.user);
+      }
 
-        res.status(200).json({
-            message: 'Files listed successfully',
-            files
-        });
-    } catch (error) {
-        console.error('Error fetching files:', error);
-        res.status(500).json({ error: 'An internal error occurred while fetching files.' });
-    }
+      res.status(200).json({
+          message: 'Files listed successfully',
+          files
+      });
+  } catch (error) {
+      console.error('Error fetching files:', error);
+      res.status(500).json({ error: 'An internal error occurred while fetching files.' });
+  }
 });
 
 // GET /admin/users route to list all users (admin only)

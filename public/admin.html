@@ -64,36 +64,41 @@
           const response = await fetch("/admin/files", {
             credentials: "include",
           });
-
+    
           if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || "Failed to fetch files.");
           }
-
+    
           const data = await response.json();
           const filesTableBody = document
             .getElementById("filesTable")
             .getElementsByTagName("tbody")[0];
           filesTableBody.innerHTML = "";
-
-          // Assuming each file object has properties: fileName, user, uploadTime
+    
           if (data.files && data.files.length > 0) {
             data.files.forEach((file) => {
               const row = filesTableBody.insertRow();
-
+    
               const fileNameCell = row.insertCell(0);
               fileNameCell.textContent = file.fileName.replace("FILE#", ""); // Remove 'FILE#' prefix if present
-
+    
               const userCell = row.insertCell(1);
               userCell.textContent = file.user;
-
+    
               const uploadTimeCell = row.insertCell(2);
               const uploadTime = file.uploadTime
                 ? new Date(file.uploadTime).toLocaleString()
                 : "N/A";
               uploadTimeCell.textContent = uploadTime;
-
+    
               const actionsCell = row.insertCell(3);
+              const downloadButton = document.createElement("a");
+              downloadButton.textContent = "Download";
+              downloadButton.href = file.presignedUrl;  // Set the presigned URL as the href for download
+              downloadButton.target = "_blank"; // Opens the link in a new tab
+              actionsCell.appendChild(downloadButton);
+    
               const deleteButton = document.createElement("button");
               deleteButton.textContent = "Delete";
               deleteButton.onclick = () => {

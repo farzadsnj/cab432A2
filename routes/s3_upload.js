@@ -181,6 +181,24 @@ const deleteFileFromS3 = async (fileName, username) => {
   }
 };
 
+// Add this function to list all files for a specific user (username can be optional if you want to list all)
+const listFilesInS3 = async (username) => {
+  try {
+    const listParams = {
+      Bucket: bucketName,
+      Prefix: `${username}/`,  // Use prefix to list files under a specific user's folder
+    };
+    const command = new ListObjectsV2Command(listParams);
+    const response = await s3Client.send(command);
+    
+    return response.Contents.map((file) => file.Key);  // Return file keys
+  } catch (err) {
+    console.error('Error listing files in S3:', err);
+    throw new Error('Failed to list files in S3');
+  }
+};
+
+
 module.exports = {
   uploadToS3,
   generatePresignedUploadUrl,

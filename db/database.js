@@ -258,42 +258,44 @@ const getProgress = async (username, fileName) => {
 
 const getAllFiles = async () => {
     const params = {
-      TableName: TABLE_NAME,
-      FilterExpression: 'begins_with(#sortKey, :filePrefix)',
-      ExpressionAttributeNames: {
-        '#sortKey': 'fileName',
-      },
-      ExpressionAttributeValues: {
-        ':filePrefix': { S: 'FILE#' },
-      },
+        TableName: TABLE_NAME,
+        FilterExpression: 'attribute_exists(fileName)', // Ensure we're only getting items that have a fileName attribute
     };
-  
+
     try {
-      const data = await dynamodb.send(new ScanCommand(params));
-  
-      if (!data.Items || data.Items.length === 0) {
-        console.log('No files found.');
-        return [];
-      }
-  
-      // Unmarshall the items
-      const files = data.Items.map(item => unmarshall(item));
-  
-      // Adjust the fileName to remove 'FILE#' prefix if fileName exists
-      files.forEach(file => {
-        if (file.fileName && file.fileName.startsWith('FILE#')) {
-          file.fileName = file.fileName.substring(5);
+        const data = await dynamodb.send(new ScanCommand(params));
+
+        if (!data.Items || data.Items.length === 0) {
+            console.log('No files found in DynamoDB.');
+            return [];
         }
-      });
-  
-      return files;
+
+        // Unmarshall the items into JSON objects
+        const files = data.Items.map(item => unmarshall(item));
+
+        // Remove the 'FILE#' prefix if it exists in the fileName
+        const cleanedFiles = files.map(file => {
+            if (file.fileName && file.fileName.startsWith('FILE#')) {
+                file.fileName = file.fileName.substring(5);  // Remove 'FILE#' prefix
+            }
+
+            // Handle missing or undefined fileName edge case
+            if (!file.fileName) {
+                console.error('Error: Missing fileName in one of the records', file);
+                file.fileName = 'Unknown file';  // You could assign a default or skip this entry
+            }
+
+            return file;
+        });
+
+        return cleanedFiles;
+
     } catch (err) {
-      console.error('Error fetching all files:', err.stack || err);
-      return [];
+        console.error('Error fetching files from DynamoDB:', err.stack || err);
+        return [];
     }
 };
 
-  
   // Delete file metadata from DynamoDB
   const deleteFile = async (username, fileName) => {
     const params = {
